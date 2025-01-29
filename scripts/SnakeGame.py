@@ -1,7 +1,4 @@
 import random
-from pynput import keyboard
-import time
-import os
 import curses
 
 keysPressed = set()

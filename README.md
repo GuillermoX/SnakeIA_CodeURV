@@ -13,6 +13,8 @@ Implementaciones:
 Limitaciones:
 - La IA actual ha sido programada manualmente y es muy simple. Además, esta no sigue completamente las
   reglas de movimiento de un jugador corriente, ya que puede moverse en cualquier dirección sin importar su cuerpo.
+  Debido a esta superioridad en el movimiento del jugador IA, es bastante dificil (por no decir imposible) conseguir
+  más puntos como jugador humano. Además la IA está programada para que no muera chocandose contra los bordes del tablero.
 - Los jugadores no son eliminados al chocar consigo mismos ni otros jugadores, simplemente se atraviesan.
   Esta limitación se ha dejado hasta ahora ya que limitaba el testeo de la IA simple. El objetivo es implementarlo
   antes de entrenar a la IA final.

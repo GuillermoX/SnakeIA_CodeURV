@@ -1,8 +1,16 @@
 import random
 import curses
+import math
 
 keysPressed = set()
 stdscr = None
+
+
+#Edit the value of this variables to config the game
+BOARD_DIM = 20      #Board dimension
+DELAY_FRAME = 150   #MS DELAY BETWEEN FRAMES
+
+
 
 EMPTY = 0
 SNAKE1_HEAD = 1
@@ -13,23 +21,6 @@ SNAKE3_HEAD = 5
 SNAKE3_BODY = 6
 FRUIT = -1
 
-"""
-def on_press(key):
-    try:
-        keysPressed.add(key.char)
-    except AttributeError:
-        keysPressed.add(str(key))
-
-def on_release(key):
-    try:
-        keysPressed.discard(key.char)
-    except AttributeError:
-        keysPressed.discard(str(key))
-
-
-listener = keyboard.Listener(on_press=on_press, on_release=on_release, suppress=True)
-listener.start()
-"""
 
 
 class Vect2d:
@@ -48,6 +39,41 @@ class Vect2d:
     def sub(self, vect):
         vecR = Vect2d(self.x - vect.x, self.y - vect.y)
         return vecR
+    
+    def rotateL(self):
+        newDir = Vect2d(self.x, self.y)
+        if(newDir.x == 1):
+            newDir.x = 0
+            newDir.y = -1
+        elif(newDir.x == -1):
+            newDir.x = 0
+            newDir.y = 1
+        elif(newDir.y == 1):
+            newDir.y = 0
+            newDir.x = 1
+        elif(newDir.y == -1):
+            newDir.y = 0
+            newDir.x = -1
+
+        return newDir
+
+
+    def rotateR(self):
+        newDir = Vect2d(self.x, self.y)
+        if(newDir.x == 1):
+            newDir.x = 0
+            newDir.y = 1
+        elif(newDir.x == -1):
+            newDir.x = 0
+            newDir.y = -1
+        elif(newDir.y == 1):
+            newDir.y = 0
+            newDir.x = -1
+        elif(newDir.y == -1):
+            newDir.y = 0
+            newDir.x = 1
+
+        return newDir
 
 class Board:
     def __init__(self, dimension: int):
@@ -60,15 +86,15 @@ class Board:
 
 class Snake:
 
-    def __init__(self, ia):
+    def __init__(self, ia, id):
         self.position = [Vect2d(0,0)]       #Position of each part of the body (first is head)
         self.dir = Vect2d(1,0)              #Direction of the head
         self.lenght = 0
         self.vel = 1
         self.points = 0
         self.alive = True
-        self.ia = ia                        #Specify if the snake is going to be controlled by IA of human
-    
+        self.ia = ia                        #Specify if the snake is going to be controlled by IA or human
+        self.id = id 
     def incrementLenght(self, incremenet: int):
         lenght += increment
     
@@ -89,10 +115,11 @@ class Snake:
 
         return False
 
-    def choseDirection(self, keysPressed, fruits, dim):
+    def choseDirection(self, keysPressed, fruits, dim, snakes):
         #TODO: If the snake is controlled by AI let the AI decide
         
         if(self.ia): 
+            """
             if (len(fruits) > 0):
                 subVect = fruits[0].pos.sub(self.position[0])
                 if subVect.x > 0:
@@ -152,8 +179,11 @@ class Snake:
                         else: 
                             if self.dir.y == 0:
                                 self.dir.y = random.choice([-1,1])
-            
-                
+           """
+            decision = self.moveDecision(fruits, dim, snakes)
+            if(decision == 1): self.dir = self.dir.rotateL()
+            elif(decision == 2): self.dir = self.dir.rotateR()
+            elif(decision == 3): self.dir = Vect2d(0,0)
         else:
             if ord('d') in keysPressed and self.dir.x == 0:
                 self.dir = Vect2d(1,0)
@@ -163,6 +193,51 @@ class Snake:
                 self.dir = Vect2d(0,-1)
             if ord('s') in keysPressed and self.dir.y == 0: 
                 self.dir = Vect2d(0,1)
+
+
+    def moveDecision(self, fruits, dim, snakes):
+        #return random.choice([1,2])
+
+        optionProb = [0,0,0]
+
+        if(len(fruits) > 0):
+            actualPos = self.position[0]
+
+            #Straight
+            self.position[0] = self.position[0].add(self.dir)
+            if(self.checkCollisionSnakes(snakes) or self.isOutOfBoard(dim)):
+                optionProb[0] = 10000
+            else:
+                diffPos = fruits[0].pos.sub(self.position[0])
+                optionProb[0] = math.sqrt(diffPos.x*diffPos.x + diffPos.y*diffPos.y)
+
+            #Left
+            self.position[0] = actualPos
+            self.position[0] = self.position[0].add(self.dir.rotateL())
+            if(self.checkCollisionSnakes(snakes) or self.isOutOfBoard(dim)):
+                optionProb[1] = 10000
+            else:
+                diffPos = fruits[0].pos.sub(self.position[0])
+                optionProb[1] = math.sqrt(diffPos.x*diffPos.x + diffPos.y*diffPos.y)
+
+            #Right
+            self.position[0] = actualPos
+            self.position[0] = self.position[0].add(self.dir.rotateR()) 
+            if(self.checkCollisionSnakes(snakes) or self.isOutOfBoard(dim)):
+                optionProb[2] = 10000
+            else:
+                diffPos = fruits[0].pos.sub(self.position[0])
+                optionProb[2] = math.sqrt(diffPos.x*diffPos.x + diffPos.y*diffPos.y)
+
+            self.position[0] = actualPos
+
+            if(optionProb[0] <= optionProb[1] and optionProb[0] <= optionProb[2]): return 0
+            elif(optionProb[1] <= optionProb[0] and optionProb[1] <= optionProb[2]): return 1
+            elif(optionProb[2] <= optionProb[0] and optionProb[2] <= optionProb[1]): return 2
+
+        else: return 1
+
+
 
     def onPosition(self, pos: Vect2d):
         for bodyPart in self.position:
@@ -176,6 +251,14 @@ class Snake:
             return True
         else:
             return False
+
+    def checkCollisionSnakes(self, snakes):
+        for snake in snakes:
+            pos = 0
+            for position in snake.position:
+                if (self.position[0].equals(position)) and (pos>0 or (pos == 0 and self.id != snake.id)): return True
+                pos += 1
+        return False
 
 
 class Fruit:
@@ -193,7 +276,7 @@ class SnakeGame:
     def __init__(self, dim, msDelay):
         self.gameRunning = False
         self.board = Board(dim)
-        self.snakes = [Snake(False), Snake(True)]
+        self.snakes = [Snake(True, 1), Snake(True, 2)]
         self.numSnakes = 1
         self.keysPressed = set()
         self.fruits = []
@@ -203,7 +286,10 @@ class SnakeGame:
             if snake.isOutOfBoard(self.board.dimension):
                 self.gameRunning = False
                 snake.alive = False
-                
+
+            if snake.checkCollisionSnakes(self.snakes):
+                self.gameRunning = False
+                snake.alive = False
 
             #TODO: Check if the snake head has crashed his own body
 
@@ -238,7 +324,7 @@ class SnakeGame:
                 self.generateFruit()
 
             for snake in self.snakes:
-                snake.choseDirection(self.keysPressed, self.fruits, self.board.dimension)
+                snake.choseDirection(self.keysPressed, self.fruits, self.board.dimension, self.snakes)
                 snake.move(self.fruits)
                 self.checkGame(snake)
                 if not(self.gameRunning):
@@ -350,7 +436,7 @@ def main(stdscr_local):
 
         height, width = stdscr.getmaxyx()
 
-        game = SnakeGame(15, msDelay)
+        game = SnakeGame(BOARD_DIM, msDelay)
         game.runGame()
 
         printGameOver(game)

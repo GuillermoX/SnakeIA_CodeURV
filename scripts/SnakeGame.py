@@ -7,8 +7,9 @@ stdscr = None
 
 
 #Edit the value of this variables to config the game
-BOARD_DIM = 20      #Board dimension
+BOARD_DIM = 30      #Board dimension
 DELAY_FRAME = 150   #MS DELAY BETWEEN FRAMES
+FRUIT_RATE = 1      #Seconds between fruit generation
 
 
 
@@ -203,12 +204,14 @@ class Snake:
         if(len(fruits) > 0):
             actualPos = self.position[0]
 
+            closestFruit = self.closestFruit(fruits)
+
             #Straight
             self.position[0] = self.position[0].add(self.dir)
             if(self.checkCollisionSnakes(snakes) or self.isOutOfBoard(dim)):
                 optionProb[0] = 10000
             else:
-                diffPos = fruits[0].pos.sub(self.position[0])
+                diffPos = closestFruit.pos.sub(self.position[0])
                 optionProb[0] = math.sqrt(diffPos.x*diffPos.x + diffPos.y*diffPos.y)
 
             #Left
@@ -217,7 +220,7 @@ class Snake:
             if(self.checkCollisionSnakes(snakes) or self.isOutOfBoard(dim)):
                 optionProb[1] = 10000
             else:
-                diffPos = fruits[0].pos.sub(self.position[0])
+                diffPos = closestFruit.pos.sub(self.position[0])
                 optionProb[1] = math.sqrt(diffPos.x*diffPos.x + diffPos.y*diffPos.y)
 
             #Right
@@ -226,7 +229,7 @@ class Snake:
             if(self.checkCollisionSnakes(snakes) or self.isOutOfBoard(dim)):
                 optionProb[2] = 10000
             else:
-                diffPos = fruits[0].pos.sub(self.position[0])
+                diffPos = closestFruit.pos.sub(self.position[0])
                 optionProb[2] = math.sqrt(diffPos.x*diffPos.x + diffPos.y*diffPos.y)
 
             self.position[0] = actualPos
@@ -260,6 +263,20 @@ class Snake:
                 pos += 1
         return False
 
+    def closestFruit(self, fruits):
+
+        diffVect = fruits[0].pos.sub(self.position[0])
+        distMin = diffVect.x*diffVect.x + diffVect.y*diffVect.y
+        fruitMin = fruits[0]
+        for fruit in fruits:
+            diffVect = fruit.pos.sub(self.position[0])
+            dist = diffVect.x*diffVect.x + diffVect.y*diffVect.y
+            if(dist < distMin): 
+                fruitMin = fruit
+                distMin = dist
+
+        return fruitMin
+
 
 class Fruit:
     def __init__(self, pos: Vect2d, points: int):
@@ -276,7 +293,7 @@ class SnakeGame:
     def __init__(self, dim, msDelay):
         self.gameRunning = False
         self.board = Board(dim)
-        self.snakes = [Snake(True, 1), Snake(True, 2)]
+        self.snakes = [Snake(False, 1), Snake(True, 2)]
         self.numSnakes = 1
         self.keysPressed = set()
         self.fruits = []
@@ -306,8 +323,17 @@ class SnakeGame:
         else:
             self.keysPressed.clear()
 
-    def generateFruit(self):
-        randomPos = Vect2d(random.randint(0, self.board.dimension-1), random.randint(0, self.board.dimension-1))
+    def generateFruit(self, snakes):
+        illegalPos = True
+        while(illegalPos):
+            randomPos = Vect2d(random.randint(0, self.board.dimension-1), random.randint(0, self.board.dimension-1))
+            illegalPos = False
+            for snake in snakes:
+                if(snake.onPosition(randomPos)):
+                    illegalPos = True
+                    break
+
+    
         newFruit = Fruit(randomPos, 10)
         self.fruits.append(newFruit)
 
@@ -319,9 +345,9 @@ class SnakeGame:
         while self.gameRunning:
             self.getKeys() 
 
-            if(timeCount >= 1*(1000/self.msDelay)):
+            if(timeCount >= FRUIT_RATE*(1000/self.msDelay)):
                 timeCount = 0
-                self.generateFruit()
+                self.generateFruit(self.snakes)
 
             for snake in self.snakes:
                 snake.choseDirection(self.keysPressed, self.fruits, self.board.dimension, self.snakes)

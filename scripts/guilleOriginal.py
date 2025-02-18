@@ -96,7 +96,7 @@ class Snake:
         self.alive = True
         self.ia = ia                        #Specify if the snake is going to be controlled by IA or human
         self.id = id 
-    def incrementLenght(self, incremenet: int):
+    def incrementLenght(self, increment: int):
         lenght += increment
     
     def move(self, fruits):

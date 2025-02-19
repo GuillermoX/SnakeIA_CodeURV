@@ -14,6 +14,8 @@ Limitaciones:
 - La IA ha sido programada manualmente por lo que es muy simple. No es capaz de visualizar a futuro la situación
   del juego, por lo que al crecer mucho la serpiente controlada por IA, esta tiende a morir al encerrarse sin querer
   sobre si misma.
+  Además, cuando no hay frutas en el tablero, la IA da vueltas sobre si misma, por lo que si es suficientemente larga, 
+  puede morir por este motivo.
 
 Errores no solucionados:
 - Si se mantiene demasiado tiempo una tecla en vez de pulsarse momentaneamente, se acelera el progreso temporal del juego.
